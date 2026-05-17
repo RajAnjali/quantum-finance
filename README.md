@@ -1,1 +1,5 @@
 # quantum-finance
+
+This project is completed as part of the mastermath course on Computational Finance at Utrecht University.
+
+The project aims to connect the well-established literature of classical binomial and trinomial tree models with the quantum walk framework. The potential quadratic speedup has invited several attempts to develop Quantum Walk algorithms for Option Pricing. However, a review of the existing literature reveals no rigourous analysis or reliable implementation demonstrating the (verifiable) numerical results of Quantum Walks for option pricing calculations. This project is an attempt to investigate where the theoretical and practical challenges arise, identify the main bottlenecks in implementation, and push the idea far enough to determine whether quantum walks on binomial or trinomial trees can be used for option pricing efficiently. 
