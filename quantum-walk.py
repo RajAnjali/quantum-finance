@@ -5,6 +5,8 @@ import os
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.quantum_info import Statevector
 from qiskit_aer import AerSimulator
+from qiskit import transpile
+from qiskit.visualization import plot_histogram
 
 script_dir = os.path.dirname(__file__)
 results_dir = os.path.join(script_dir, 'test_results/')
@@ -56,8 +58,67 @@ class BinomialTreeModel:
         plt.axis('off')
         plt.savefig(file_path, dpi=300, bbox_inches='tight')
 
-    def quantum_walk_circuit(self):
-        pass
+    def decrement_gate(num_qubits):
+        # Maps \ket{i} to \ket{i-1 mod N}
+        qc = QuantumCircuit(num_qubits, name="Dec")
+        qc.x(0)
+
+        for i in range(num_qubits):
+            for j in range(i):
+                qc.x(j)
+            qc.mcx(list(range(i)), i)
+            for j in range(i):
+                qc.x(j)
+            qc.x(i)
+                     
+        return qc.to_gate()
+    
+
+    def quantum_walk_circuit(self, depth, steps, shots=1000):
+        position_qubits = depth.bit_length()
+    
+        # Build circuit
+        coin_register = QuantumRegister(1, 'coin')
+        i_register = QuantumRegister(position_qubits, 'i')
+        j_register = QuantumRegister(position_qubits, 'j')
+        qc = QuantumCircuit(coin_register, i_register, j_register)
+
+        # Initialize circuit
+        value = depth
+        for i in range(len(i_register)):
+            if (value >> i) & 1:
+                qc.x(i_register[i])
+        qc.h(j_register)
+        qc.barrier()
+
+        # Perform quantum walk steps
+        for step in range(steps):
+            # Coin toss
+            qc.h(coin_register)
+
+            # Shift operator
+            dec_i = self.decrement_gate(position_qubits)
+            qc.append(dec_i, i_register)
+            dec_j = self.decrement_gate(position_qubits)
+            c_dec_j = dec_j.control(1)
+
+            qc.append(c_dec_j, [coin_register[0]] + list(j_register))
+            qc.barrier(label=f'step_{step}')
+
+        if step%2==0:
+            qc.h(coin_register)
+
+        qc.measure_all()
+
+        return qc
+    
+    def plot_results(qc, shots, title):
+        simulator = AerSimulator()
+        transpiled_qc = transpile(qc, simulator)
+        results = simulator.run(transpiled_qc, shots=shots).result()
+        counts = results.get_counts(transpiled_qc)
+
+        return plot_histogram(counts, title=title)
 
 
 class TrinomialTreeModel:
@@ -109,6 +170,7 @@ class TrinomialTreeModel:
         plt.savefig(file_path, dpi=300, bbox_inches='tight')
 
     def quantum_walk_circuit(self):
+        # TODO
         pass
 
 if __name__ == "__main__":
